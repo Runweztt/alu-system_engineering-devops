@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# Installs Nginx and configures a permanent redirect and custom 404 page.
+apt-get update
+apt-get -y install nginx
+
+mkdir -p /var/www/html
+printf '%s\n' "Holberton School for the win!" > /var/www/html/index.html
+
+cat > /var/www/html/404.html << 'HTML'
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>404 | Page Not Found</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #ffffff;
+            background: #071426;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 760px;
+            padding: 60px 35px;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: 26px;
+            background: #10233f;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45);
+        }
+
+        .error-code {
+            margin-bottom: 18px;
+            font-size: 10rem;
+            font-weight: 900;
+            line-height: 0.9;
+            color: #38bdf8;
+        }
+
+        h1 {
+            margin-bottom: 16px;
+            font-size: 2.5rem;
+        }
+
+        p {
+            max-width: 560px;
+            margin: 0 auto 14px;
+            font-size: 1.1rem;
+            line-height: 1.7;
+            color: #cbd5e1;
+        }
+
+        .required-text {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 22px;
+            padding: 14px 28px;
+            border-radius: 50px;
+            color: #071426;
+            font-weight: 700;
+            text-decoration: none;
+            background: #7dd3fc;
+        }
+
+        a:hover {
+            background: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div class="error-code">404</div>
+        <h1>This page got lost.</h1>
+        <p class="required-text">Ceci n'est pas une page</p>
+        <p>
+            The page you requested does not exist, may have moved,
+            or is taking an unexpected break from the internet.
+        </p>
+        <a href="/">Return home</a>
+    </main>
+</body>
+</html>
+HTML
+
+cat > /etc/nginx/sites-available/default << 'NGINX'
+server {
+    listen 80 default_server;
+
+    root /var/www/html;
+    index index.html;
+    server_name _;
+
+    location /redirect_me {
+        return 301 https://www.youtube.com/watch?v=QH2-TGUlwu4;
+    }
+
+    error_page 404 /404.html;
+
+    location = /404.html {
+        internal;
+    }
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+NGINX
+
+ln -sf /etc/nginx/sites-available/default \
+    /etc/nginx/sites-enabled/default
+
+nginx -t
+service nginx restart
