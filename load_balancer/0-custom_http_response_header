@@ -1,34 +1,17 @@
 #!/usr/bin/env bash
 # Configures Nginx to return the server hostname in an X-Served-By header.
-set -e
-
-apt-get update
-apt-get -y install nginx
-
-server_hostname="$(hostname)"
+# shellcheck disable=SC2154
+apt-get update -y
+apt-get install -y nginx
 
 mkdir -p /var/www/html
 printf '%s\n' "Holberton School for the win!" > /var/www/html/index.html
 
-cat > /etc/nginx/sites-available/default << NGINX
-server {
-    listen 80 default_server;
-    listen [::]:80 default_server;
+sed -i '/add_header X-Served-By/d' \
+    /etc/nginx/sites-available/default
 
-    root /var/www/html;
-    index index.html;
-    server_name _;
-
-    add_header X-Served-By "${server_hostname}";
-
-    location / {
-        try_files \$uri \$uri/ =404;
-    }
-}
-NGINX
-
-ln -sf /etc/nginx/sites-available/default \
-    /etc/nginx/sites-enabled/default
+sed -i "/server_name _;/a \    add_header X-Served-By $HOSTNAME;" \
+    /etc/nginx/sites-available/default
 
 nginx -t
 service nginx restart
