@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Starts Apache and creates a web page containing Hello Holberton.
+echo "Hello Holberton" > /var/www/html/index.html
+service apache2 start
