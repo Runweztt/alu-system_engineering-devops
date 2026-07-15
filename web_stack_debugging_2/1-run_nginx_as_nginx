@@ -1,13 +1,59 @@
 #!/usr/bin/env bash
-# Configures Nginx to run as the nginx user and listen on port 8080.
+# Runs Nginx as the nginx user and listens on all IPv4 addresses on port 8080.
+service apache2 stop >/dev/null 2>&1 || true
 pkill apache2 2>/dev/null || true
 pkill nginx 2>/dev/null || true
-id -u nginx >/dev/null 2>&1 || useradd -r -s /usr/sbin/nologin nginx
-sed -i 's/^user .*/user nginx;/' /etc/nginx/nginx.conf
-sed -i 's/listen 80 default_server;/listen 8080 default_server;/' /etc/nginx/sites-available/default
-sed -i 's/listen \[::\]:80 default_server ipv6only=on;/listen [::]:8080 default_server ipv6only=on;/' /etc/nginx/sites-available/default
-mkdir -p /var/log/nginx /var/lib/nginx /var/cache/nginx
-chown -R nginx:nginx /var/log/nginx /var/lib/nginx /var/cache/nginx
-touch /var/run/nginx.pid
-chown nginx:nginx /var/run/nginx.pid
-sudo -u nginx /usr/sbin/nginx
+id -u nginx >/dev/null 2>&1 || useradd -r -s /bin/false nginx
+
+rm -f /tmp/nginx.pid
+
+mkdir -p /tmp/nginx-client-body
+mkdir -p /tmp/nginx-proxy
+mkdir -p /tmp/nginx-fastcgi
+mkdir -p /tmp/nginx-uwsgi
+mkdir -p /tmp/nginx-scgi
+
+chown -R nginx:nginx /tmp/nginx-client-body
+chown -R nginx:nginx /tmp/nginx-proxy
+chown -R nginx:nginx /tmp/nginx-fastcgi
+chown -R nginx:nginx /tmp/nginx-uwsgi
+chown -R nginx:nginx /tmp/nginx-scgi
+
+cat > /tmp/nginx.conf << 'NGINX'
+daemon on;
+pid /tmp/nginx.pid;
+error_log /tmp/nginx-error.log;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    include /etc/nginx/mime.types;
+    default_type application/octet-stream;
+
+    access_log /tmp/nginx-access.log;
+
+    client_body_temp_path /tmp/nginx-client-body;
+    proxy_temp_path /tmp/nginx-proxy;
+    fastcgi_temp_path /tmp/nginx-fastcgi;
+    uwsgi_temp_path /tmp/nginx-uwsgi;
+    scgi_temp_path /tmp/nginx-scgi;
+
+    server {
+        listen 0.0.0.0:8080 default_server;
+        server_name _;
+
+        root /usr/share/nginx/html;
+        index index.html index.htm;
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+}
+NGINX
+
+chmod 644 /tmp/nginx.conf
+sudo -u nginx /usr/sbin/nginx -t -c /tmp/nginx.conf
+sudo -u nginx /usr/sbin/nginx -c /tmp/nginx.conf
