@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Runs Nginx on port 80 while the init service reports it as stopped.
-sed -i 's/listen 8080/listen 80/g' /etc/nginx/sites-enabled/default
-nginx
-rm -f /var/run/nginx.pid
+# Runs Nginx on port 80 while init reports that Nginx is not running.
+ln -sfn /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default
+service nginx start
+rm -f /run/nginx.pid
